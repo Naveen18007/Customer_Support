@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Customer Support</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      height: 100vh;
+      background: #f4f6f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      width: 420px;
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: #2563eb;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    #auth button {
+      width: 100%;
+    }
+
+    button:hover {
+      background: #1e4fd8;
+    }
+
+    button:hover {
+      background: #1e4fd8;
+    }
+    /* Chat UI */
+    .chat-box {
+      height: 280px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 10px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      background: #fafafa;
+    }
+
+    .message {
+      margin-bottom: 8px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      max-width: 80%;
+      font-size: 14px;
+    }
+
+    .user {
+      background: #2563eb;
+      color: white;
+      margin-left: auto;
+      text-align: right;
+    }
+
+    .bot {
+      background: #e5e7eb;
+      color: #111;
+      margin-right: auto;
+      text-align: left;
+    }
+
+    .chat-footer {
+      display: flex;
+      gap: 10px;
+    }
+
+    .chat-footer input {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .chat-footer button {
+      width: 80px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Verification -->
+  <div class="container" id="auth">
+    <h2>Verify Your Account</h2>
+    <input id="email" placeholder="Email address" />
+    <input id="phone" placeholder="Phone number" />
+    <button onclick="verify()">Verify</button>
+  </div>
+
+  <!-- Chat -->
+  <div class="container" id="chat" style="display:none;">
+    <h2>Customer Support</h2>
+
+    <div class="chat-box" id="chatBox"></div>
+
+    <div class="chat-footer">
+      <input id="message" placeholder="Type your message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    let customer = null;
+
+    async function verify() {
+      const email = document.getElementById("email").value;
+      const phone = document.getElementById("phone").value;
+
+      const res = await fetch("http://127.0.0.1:8000/verify-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, phone })
+      });
+
+      if (!res.ok) {
+        alert("Account not found");
+        return;
+      }
+
+      const data = await res.json();
+      customer = data.customer;
+
+      document.getElementById("auth").style.display = "none";
+      document.getElementById("chat").style.display = "block";
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("message");
+      const text = input.value.trim();
+      if (!text) return;
+
+      const chatBox = document.getElementById("chatBox");
+
+      // User message
+      const userMsg = document.createElement("div");
+      userMsg.className = "message user";
+      userMsg.innerText = text;
+      chatBox.appendChild(userMsg);
+
+      input.value = "";
+
+      const res = await fetch("http://127.0.0.1:8000/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          customer_id: customer.customer_id
+        })
+      });
+
+      const data = await res.json();
+
+      // Bot message
+      const botMsg = document.createElement("div");
+      botMsg.className = "message bot";
+      botMsg.innerText = data.response;
+      chatBox.appendChild(botMsg);
+
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+  </script>
+
+</body>
+</html>
