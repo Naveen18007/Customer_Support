@@ -5,7 +5,7 @@ def test_faq_connection():
         supabase
         .table("faqs")
         .select("id, question")
-        .limit(1)
+        .limit(5)
         .execute()
     )
 
