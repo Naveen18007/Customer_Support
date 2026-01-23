@@ -1,10 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
 from app.services.auth_service import verify_user
+from app.services.orchestrator import analyze_priority
+from app.services.session_store import append_message
+
 app = FastAPI()
 
-# CORS (already added)
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,15 +32,36 @@ def verify_user_endpoint(data: VerifyRequest):
     result = verify_user(data.email, data.phone)
 
     if not result["verified"]:
-        raise HTTPException(
-            status_code=401,
-            detail="Account not found"
-        )
+        raise HTTPException(status_code=401, detail="Account not found")
+
     return result
 
 @app.post("/chat")
 def chat_endpoint(data: ChatRequest):
-    # TEMP response (we’ll replace with FAQ Agent)
-    return {
-        "response": f"Received your message: '{data.message}'"
-    }
+
+    # Store user message in session
+    append_message(
+        customer_id=data.customer_id,
+        role="user",
+        content=data.message
+    )
+
+    priority = analyze_priority(
+        customer_id=data.customer_id,
+        message=data.message
+    )
+
+    bot_response = f"🧠 Sentiment Analysis Result:\nPriority: {priority}"
+
+    # Store assistant response
+    append_message(
+        customer_id=data.customer_id,
+        role="assistant",
+        content=bot_response
+    )
+
+    return {"response": bot_response}
+
+@app.get("/")
+def health():
+    return {"status": "ok"}
